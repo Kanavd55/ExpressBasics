@@ -1,7 +1,9 @@
 const express = require('express');
-
+const connectDB = require('./config/database');
+const User = require('./models/user');
 const app = express();
 const { userAuth } = require('./middlewares/userAuth');
+app.use(express.json());
 app.get("/test",(req,res)=>{
     res.send("Hello from the server")
 })
@@ -11,8 +13,51 @@ app.get("/namaste",(req,res)=>{
 })
 
 app.post('/user',userAuth,async(req,res)=>{
+    //Creating a new instance of User model
+    console.log(req.body)
+    const user = new User(req.body);
     //saving data to db
+    await user.save();
     res.send("User data saved");
+})
+
+app.get('/user',userAuth,async(req,res)=>{
+    try{
+        const userEmail = req.body.emailId;
+        const users = await User.find({emailId:userEmail});
+        if(users.length === 0){
+            return res.status(404).send("User not found");
+        }else{
+            res.send(users);
+        }
+    }catch(err){
+        console.log(err);
+        res.status(400).send("Something went wrong");
+    }
+})
+
+app.get('/feed',userAuth,async(req,res)=>{
+    try{
+        const users = await User.find({});
+        res.send(users);
+    }catch(err){
+        console.log(err);
+        res.status(400).send("Something went wrong");
+    }
+})
+
+app.delete('/user',userAuth,async(req,res)=>{
+    try{
+        const user = await User.findByIdAndDelete({_id: req.body.id});
+        if(!user){
+            return res.status(404).send("User not found");
+        }else{
+            res.send("User deleted successfully");
+        }
+    }catch(err){
+        console.log(err);
+        res.status(400).send("Something went wrong");
+    }
 })
 
 app.delete('/user',userAuth,async(req,res)=>{
@@ -30,9 +75,21 @@ app.get('/uses',[(req,res,next)=>{
     res.send("Hello from the uses")
 })
 
+app.post("/signup",(req,res)=>{
+    //signup logic
+    res.send("User signed up successfully");
+})
+
 app.get("/",(req,res)=>{
     res.send("Hello from the root")
 })
-app.listen(3000,()=>{
+
+connectDB().then(()=>{
+    console.log("Database connected successfully");
+    app.listen(7777,()=>{
     console.log("Server is listening successfully on port 3000")
 });
+})
+.catch((err)=>{
+    console.log("Database connection failed",err);
+})
