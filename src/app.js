@@ -95,7 +95,7 @@ app.patch('/user',userAuth,async(req,res)=>{
         if(!isUpdatedAllowed){
             throw new Error("Invalid updates");
         }
-        if(data.skills.length > 10){
+        if(data?.skills?.length > 10){
             throw new Error("Skills cannot be more than 10");
         }
         const user = await User.findByIdAndUpdate({_id:userId}, data, { returnDocument: 'after', runValidators: true });
