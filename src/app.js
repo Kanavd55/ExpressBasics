@@ -5,7 +5,11 @@ const app = express();
 const { userAuth } = require('./middlewares/userAuth');
 const { validateSignupData } = require('./utils/validation');
 const bcrypt = require('bcrypt');
+var cookieParser = require('cookie-parser')
+const jwt = require('jsonwebtoken');
+
 app.use(express.json());
+app.use(cookieParser());
 app.get("/test",(req,res)=>{
     res.send("Hello from the server")
 })
@@ -36,8 +40,12 @@ app.get('/user',userAuth,async(req,res)=>{
         if(!user){
             return res.status(404).send("User not found");
         }
-        if(!isPasswordMatch){
-            return res.status(401).send("Invalid credentials");
+        console.log(isPasswordMatch)
+        if(isPasswordMatch){
+            //generating jwt token
+            const token = await jwt.sign({_id:user._id},"scretfesfKey")
+            res.cookie('token',token);
+            return res.status(401).send(user);
         }else{
             throw new Error("Invalid credentials");
         }
@@ -73,7 +81,14 @@ app.delete('/user',userAuth,async(req,res)=>{
 
 app.patch('/user',userAuth,async(req,res)=>{
     try {
-        const userId = req.body.id;
+        const cookies = req.cookies;
+        const {token} = cookies;
+        if(!token){
+            return res.status(401).send("Invalid Token");
+        }
+        const decoded = await jwt.verify(token, "scretfesfKey");
+        const {_id} = decoded;
+        const userId = _id;
         const data = req.body;
         const AllowedUpdates = ['age', 'gender', 'photoUrl', 'about', 'skills', 'isPremium', 'memberShipType'];
         const isUpdatedAllowed = Object.keys(data).every((key) => AllowedUpdates.includes(key));
