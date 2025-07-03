@@ -14,7 +14,6 @@ app.get("/namaste",(req,res)=>{
 
 app.post('/user',userAuth,async(req,res)=>{
     //Creating a new instance of User model
-    console.log(req.body)
     const user = new User(req.body);
     //saving data to db
     await user.save();
@@ -57,6 +56,27 @@ app.delete('/user',userAuth,async(req,res)=>{
     }catch(err){
         console.log(err);
         res.status(400).send("Something went wrong");
+    }
+})
+
+app.patch('/user',userAuth,async(req,res)=>{
+    try {
+        const userId = req.body.id;
+        const data = req.body;
+        const AllowedUpdates = ['age', 'gender', 'photoUrl', 'about', 'skills', 'isPremium', 'memberShipType'];
+        const isUpdatedAllowed = Object.keys(data).every((key) => AllowedUpdates.includes(key));
+        if(!isUpdatedAllowed){
+            throw new Error("Invalid updates");
+        }
+        if(data.skills.length > 10){
+            throw new Error("Skills cannot be more than 10");
+        }
+        const user = await User.findByIdAndUpdate({_id:userId}, data, { returnDocument: 'after', runValidators: true });
+        res.send("User updated successfully");
+    } catch (error) {
+        console.log(error);
+        res.status(400).send("Something went wrong");
+        
     }
 })
 
