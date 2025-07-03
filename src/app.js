@@ -3,6 +3,8 @@ const connectDB = require('./config/database');
 const User = require('./models/user');
 const app = express();
 const { userAuth } = require('./middlewares/userAuth');
+const { validateSignupData } = require('./utils/validation');
+const bcrypt = require('bcrypt');
 app.use(express.json());
 app.get("/test",(req,res)=>{
     res.send("Hello from the server")
@@ -14,6 +16,11 @@ app.get("/namaste",(req,res)=>{
 
 app.post('/user',userAuth,async(req,res)=>{
     //Creating a new instance of User model
+    validateSignupData(req);
+    const password = req.body.password;
+    //hashing password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    req.body.password = hashedPassword;
     const user = new User(req.body);
     //saving data to db
     await user.save();
@@ -23,11 +30,16 @@ app.post('/user',userAuth,async(req,res)=>{
 app.get('/user',userAuth,async(req,res)=>{
     try{
         const userEmail = req.body.emailId;
-        const users = await User.find({emailId:userEmail});
-        if(users.length === 0){
+        const password = req.body.password;
+        const user = await User.findOne({emailId:userEmail});
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+        if(!user){
             return res.status(404).send("User not found");
+        }
+        if(!isPasswordMatch){
+            return res.status(401).send("Invalid credentials");
         }else{
-            res.send(users);
+            throw new Error("Invalid credentials");
         }
     }catch(err){
         console.log(err);
