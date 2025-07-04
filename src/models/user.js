@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
+const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema({
     firstName:{
@@ -33,6 +34,7 @@ const userSchema = new mongoose.Schema({
     age:{
         type:Number,
         min:18,
+        required:true,
     },
     gender:{
         type:String,
@@ -40,7 +42,8 @@ const userSchema = new mongoose.Schema({
             if(!['male', 'female', 'other'].includes(value.toLowerCase())) {
                 throw new Error('Invalid gender');
             }
-        }
+        },
+        required:true,
     },
     photoUrl:{
         type:String,
@@ -65,5 +68,12 @@ const userSchema = new mongoose.Schema({
 },{
     timestamps:true,
 })
+
+userSchema.methods.validatePassword = async function(passwordInput){
+    const user = this;
+    const passwordHash = user.password;
+    const isPasswordValid = await bcrypt.compare(passwordInput, passwordHash);
+    return isPasswordValid;
+}
 
 module.exports = mongoose.model('User', userSchema);
